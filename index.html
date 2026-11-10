@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#103e35">
+  <meta name="description" content="Calcule corrente, Lei de Ohm, dimensionamento de cabos e queda de tensão.">
+  <title>Amperagem — calculadora elétrica</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./calculations.js" defer></script>
+  <script src="./cable-protection.js" defer></script>
+  <script src="./voltage-drop.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Amperagem, início">
+      <span class="brand-mark" aria-hidden="true">ϟ</span>
+      <span>amperagem</span>
+    </a>
+    <button class="install-button" id="install-button" type="button" hidden>Instalar app</button>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">FERRAMENTAS ELÉTRICAS</p>
+      <h1 id="page-title">Conta de luz.<br><span>Sem complicação.</span></h1>
+      <p class="intro-copy">Calcule corrente, resolva a Lei de Ohm, dimensione cabos e confira a queda de tensão.</p>
+    </section>
+
+    <nav class="tabs" aria-label="Calculadoras">
+      <button class="tab is-active" id="tab-current" type="button" aria-selected="true" aria-controls="panel-current">Corrente elétrica</button>
+      <button class="tab" id="tab-ohm" type="button" aria-selected="false" aria-controls="panel-ohm">Lei de Ohm</button>
+      <button class="tab" id="tab-cable" type="button" aria-selected="false" aria-controls="panel-cable">Cabo e disjuntor</button>
+      <button class="tab" id="tab-voltage-drop" type="button" aria-selected="false" aria-controls="panel-voltage-drop">Queda de tensão</button>
+    </nav>
+
+    <section class="calculator-panel" id="panel-current" aria-labelledby="tab-current">
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">CALCULADORA 01</p>
+          <h2>Corrente a partir da potência</h2>
+        </div>
+        <span class="heading-icon" aria-hidden="true">A</span>
+      </div>
+      <form id="current-form" novalidate>
+        <fieldset class="field-group">
+          <legend>Tipo de instalação</legend>
+          <div class="choice-row phase-choices">
+            <button class="choice is-selected" type="button" data-phase="single" aria-pressed="true">Monofásica</button>
+            <button class="choice" type="button" data-phase="three" aria-pressed="false">Trifásica</button>
+          </div>
+        </fieldset>
+
+        <div class="field-group">
+          <label for="power">Potência</label>
+          <div class="input-with-unit">
+            <input id="power" name="power" type="number" inputmode="decimal" min="0" step="any" placeholder="Ex.: 1500" required>
+            <select id="power-unit" name="power-unit" aria-label="Unidade da potência">
+              <option value="W">W</option>
+              <option value="kW">kW</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="voltage">Tensão</label>
+          <div class="choice-row voltage-choices" aria-label="Tensões comuns">
+            <button class="choice voltage-choice" type="button" data-voltage="127" aria-pressed="false">127 V</button>
+            <button class="choice voltage-choice is-selected" type="button" data-voltage="220" aria-pressed="true">220 V</button>
+            <button class="choice voltage-choice" type="button" data-voltage="380" aria-pressed="false">380 V</button>
+          </div>
+          <div class="input-with-unit voltage-input-wrap">
+            <input id="voltage" name="voltage" type="number" inputmode="decimal" min="0" step="any" value="220" placeholder="Ou informe outra tensão" required>
+            <span class="unit-suffix">V</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="power-factor">Fator de potência <span class="optional">opcional</span></label>
+          <input id="power-factor" name="power-factor" type="number" inputmode="decimal" min="0.01" max="1" step="any" value="1" placeholder="Padrão: 1">
+          <p class="field-hint">Use um valor maior que 0 e até 1. Se ficar em branco, usamos 1.</p>
+        </div>
+
+        <button class="primary-button" type="submit">Calcular corrente <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="result-card" id="current-result" role="status" aria-live="polite" hidden>
+        <p class="result-kicker">CORRENTE CALCULADA</p>
+        <p class="result-value"><span id="current-value"></span><span class="result-unit">A</span></p>
+        <button class="secondary-button" id="use-calculated-current" type="button" disabled>Usar no dimensionamento de cabo <span aria-hidden="true">→</span></button>
+        <button class="secondary-button" id="use-current-for-drop" type="button" disabled>Usar corrente na queda de tensão <span aria-hidden="true">→</span></button>
+        <div class="formula-block"><span>Fórmula usada</span><code id="current-formula"></code><code id="current-substitution"></code></div>
+      </div>
+    </section>
+
+    <section class="calculator-panel" id="panel-ohm" aria-labelledby="tab-ohm" hidden>
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">CALCULADORA 02</p>
+          <h2>Lei de Ohm</h2>
+        </div>
+        <span class="heading-icon" aria-hidden="true">Ω</span>
+      </div>
+      <p class="panel-copy">Escolha o que quer descobrir e informe duas grandezas conhecidas.</p>
+      <form id="ohm-form" novalidate>
+        <div class="field-group">
+          <label for="ohm-target">Quero calcular</label>
+          <select class="full-select" id="ohm-target">
+            <option value="V">Tensão (V)</option>
+            <option value="I">Corrente (I)</option>
+            <option value="R">Resistência (R)</option>
+            <option value="P">Potência (P)</option>
+          </select>
+        </div>
+        <div class="known-values">
+          <div class="field-group">
+            <label for="known-a-symbol">Grandeza conhecida 1</label>
+            <div class="input-with-unit known-input">
+              <select id="known-a-symbol" aria-label="Grandeza conhecida 1"></select>
+              <input id="known-a-value" type="number" inputmode="decimal" min="0" step="any" placeholder="Valor" required>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="known-b-symbol">Grandeza conhecida 2</label>
+            <div class="input-with-unit known-input">
+              <select id="known-b-symbol" aria-label="Grandeza conhecida 2"></select>
+              <input id="known-b-value" type="number" inputmode="decimal" min="0" step="any" placeholder="Valor" required>
+            </div>
+          </div>
+        </div>
+        <button class="primary-button" type="submit">Calcular <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="result-card" id="ohm-result" role="status" aria-live="polite" hidden>
+        <p class="result-kicker" id="ohm-result-label">RESULTADO</p>
+        <p class="result-value"><span id="ohm-value"></span><span class="result-unit" id="ohm-unit"></span></p>
+        <div class="formula-block"><span>Fórmula usada</span><code id="ohm-formula"></code><code id="ohm-substitution"></code></div>
+      </div>
+    </section>
+
+    <section class="calculator-panel" id="panel-cable" aria-labelledby="tab-cable" hidden>
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">CALCULADORA 03</p>
+          <h2>Estimativa de cabo e disjuntor</h2>
+        </div>
+        <span class="heading-icon" aria-hidden="true">mm²</span>
+      </div>
+      <p class="panel-copy">Informe a corrente de carga para sugerir o disjuntor e a menor seção de cobre que atende à corrente nominal dele.</p>
+      <form id="cable-form" novalidate>
+        <div class="field-group">
+          <label for="cable-current">Corrente de carga (Ib), em ampères</label>
+          <div class="input-with-unit">
+            <input id="cable-current" name="cable-current" type="number" inputmode="decimal" min="0" step="any" placeholder="Ex.: 12,5" required>
+            <span class="unit-suffix">A</span>
+          </div>
+        </div>
+        <fieldset class="field-group">
+          <legend>Tipo de instalação</legend>
+          <div class="choice-row cable-phase-choices">
+            <button class="choice is-selected" type="button" data-cable-phase="single" aria-pressed="true">Monofásica · 2 condutores</button>
+            <button class="choice" type="button" data-cable-phase="three" aria-pressed="false">Trifásica · 3 condutores</button>
+          </div>
+        </fieldset>
+        <div class="field-group">
+          <label for="installation-method">Método de instalação</label>
+          <select class="full-select" id="installation-method">
+            <option value="B1">B1 — eletroduto aparente</option>
+            <option value="C">C — cabos sobre parede/bandeja</option>
+            <option value="D">D — eletroduto enterrado</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="design-factor">Fator de projeto <span class="optional">opcional</span></label>
+          <input id="design-factor" name="design-factor" type="number" inputmode="decimal" min="1" step="any" value="1" placeholder="Padrão: 1">
+          <p class="field-hint">Use, por exemplo, 1,25 para aplicar margem a motores ou cargas contínuas. Corrente de projeto Ib × fator.</p>
+        </div>
+        <button class="primary-button" type="submit">Dimensionar <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="result-card cable-result" id="cable-result" role="status" aria-live="polite" hidden>
+        <p class="result-kicker">SUGESTÃO SIMPLIFICADA</p>
+        <p class="result-message" hidden></p>
+        <div class="cable-result-grid">
+          <div><span>Corrente de projeto (Ib)</span><strong id="cable-design-current"></strong></div>
+          <div><span>Disjuntor (In)</span><strong id="cable-breaker"></strong></div>
+          <div><span>Seção mínima de cobre</span><strong id="cable-section"></strong></div>
+          <div><span>Capacidade do cabo (Iz)</span><strong id="cable-ampacity"></strong></div>
+        </div>
+        <p class="cable-rule" id="cable-rule"></p>
+      </div>
+      <p class="cable-disclaimer"><strong>Atenção:</strong> estimativa simplificada com cobre/PVC 70 °C e valores de ampacidade de referência da NBR 5410. Um eletricista qualificado deve verificar o projeto. Não considera queda de tensão, agrupamento de circuitos nem temperatura ambiente; esses fatores podem exigir cabo maior e outras proteções.</p>
+    </section>
+
+    <section class="calculator-panel" id="panel-voltage-drop" aria-labelledby="tab-voltage-drop" hidden>
+      <div class="panel-heading">
+        <div>
+          <p class="step-label">CALCULADORA 04</p>
+          <h2>Queda de tensão</h2>
+        </div>
+        <span class="heading-icon" aria-hidden="true">ΔV</span>
+      </div>
+      <p class="panel-copy">Estime a queda no trecho entre a alimentação e a carga. O comprimento informado é só de ida.</p>
+      <form id="voltage-drop-form" novalidate>
+        <div class="field-group">
+          <label for="drop-current">Corrente de carga, em ampères</label>
+          <div class="input-with-unit">
+            <input id="drop-current" type="number" inputmode="decimal" min="0" step="any" placeholder="Ex.: 12,5" required>
+            <span class="unit-suffix">A</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="drop-voltage">Tensão</label>
+          <div class="choice-row voltage-choices drop-voltage-choices" aria-label="Tensões comuns">
+            <button class="choice" type="button" data-drop-voltage="127" aria-pressed="false">127 V</button>
+            <button class="choice is-selected" type="button" data-drop-voltage="220" aria-pressed="true">220 V</button>
+            <button class="choice" type="button" data-drop-voltage="380" aria-pressed="false">380 V</button>
+          </div>
+          <div class="input-with-unit">
+            <input id="drop-voltage" type="number" inputmode="decimal" min="0" step="any" value="220" placeholder="Ou informe outra tensão" required>
+            <span class="unit-suffix">V</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="drop-length">Comprimento de ida, em metros</label>
+          <div class="input-with-unit">
+            <input id="drop-length" type="number" inputmode="decimal" min="0" step="any" placeholder="Ex.: 25" required>
+            <span class="unit-suffix">m</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="drop-section">Seção do cabo de cobre</label>
+          <select class="full-select" id="drop-section" required></select>
+          <button class="secondary-button suggested-cable-button" id="use-suggested-drop-section" type="button" disabled>Usar cabo sugerido no dimensionamento <span aria-hidden="true">→</span></button>
+        </div>
+        <fieldset class="field-group">
+          <legend>Tipo de instalação</legend>
+          <div class="choice-row drop-phase-choices">
+            <button class="choice is-selected" type="button" data-drop-phase="single" aria-pressed="true">Monofásica</button>
+            <button class="choice" type="button" data-drop-phase="three" aria-pressed="false">Trifásica</button>
+          </div>
+        </fieldset>
+        <div class="field-group">
+          <label for="drop-power-factor">Fator de potência <span class="optional">opcional</span></label>
+          <input id="drop-power-factor" type="number" inputmode="decimal" min="0.01" max="1" step="any" placeholder="Padrão: 1">
+          <p class="field-hint">Se informado (0 a 1), multiplica a parcela resistiva. Componente reativa ignorada.</p>
+        </div>
+        <div class="field-group">
+          <label for="drop-limit">Limite máximo de queda</label>
+          <select class="full-select" id="drop-limit">
+            <option value="3">3%</option>
+            <option value="4" selected>4% (padrão)</option>
+            <option value="5">5%</option>
+          </select>
+        </div>
+        <button class="primary-button" type="submit">Calcular queda de tensão <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="result-card voltage-drop-result" id="voltage-drop-result" role="status" aria-live="polite" hidden>
+        <p class="result-kicker">QUEDA DE TENSÃO ESTIMADA</p>
+        <p class="result-value"><span id="drop-value"></span><span class="result-unit">V</span></p>
+        <p class="drop-percent" id="drop-percent"></p>
+        <p class="voltage-drop-status" id="voltage-drop-status"></p>
+        <p class="drop-suggestion" id="drop-suggestion" hidden></p>
+        <div class="formula-block"><span>Fórmula usada</span><code id="drop-formula"></code><code id="drop-substitution"></code></div>
+      </div>
+      <p class="cable-disclaimer"><strong>Atenção:</strong> estimativa simplificada com resistividade do cobre de 0,0172 Ω·mm²/m; a componente reativa não é considerada. Um eletricista qualificado deve verificar as condições reais da instalação, o método de instalação e as normas aplicáveis.</p>
+    </section>
+
+    <p class="disclaimer">Os resultados são estimativas para apoio. Confira as especificações do equipamento e as condições da instalação.</p>
+  </main>
+  <footer><span>Feito para facilitar seus cálculos.</span><span>Amperagem <span aria-hidden="true">·</span> 2026</span></footer>
+</body>
+</html>
